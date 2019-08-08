@@ -6,7 +6,12 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-    public class Class1
-    {
-    }
+	public class ConsoleMenu
+	{
+
+		public static string PresetsFile = "Presets.json";
+
+
+
+	}
 }

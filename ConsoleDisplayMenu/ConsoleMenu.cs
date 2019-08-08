@@ -12,6 +12,9 @@ namespace ConsoleDisplayMenu
 		public static string PresetsFile = "Presets.json";
 
 
+		public static void Render(string page) {
+
+		}
 
 	}
 }

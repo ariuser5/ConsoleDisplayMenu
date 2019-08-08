@@ -37,7 +37,8 @@ namespace ConsoleDisplayMenu
 		}
 
 		public static string ReadInnerJson(string json) {
-
+			//todo
+			//read Json and return only Json text inside components property
 		}
 
 
@@ -87,6 +88,7 @@ namespace ConsoleDisplayMenu
 			public IEnumerable<JsonObject> Components {
 				get {
 					//todo
+					//Return all JsonObject instances in this Container
 				}
 			}
 
@@ -147,12 +149,14 @@ namespace ConsoleDisplayMenu
 
 
 			public void WriteValue(string value) {
-
+				//todo
+				//Write the value into PresetsFile
 			}
 
 
 			public string ReadValue() {
-
+				//todo
+				//Read the value from PresetsFile
 			}
 
 		}

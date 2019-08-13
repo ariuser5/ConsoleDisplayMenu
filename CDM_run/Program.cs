@@ -14,7 +14,7 @@ namespace CDM_run
 
 		private static void Main(string[] args) {
 
-			ConsoleMenu.Render(currentPage);
+			JsonObject.Render(currentPage);
 			Console.ReadKey();
 
 		}

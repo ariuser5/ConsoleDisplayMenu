@@ -48,6 +48,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Presets.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConsoleDisplayMenu\ConsoleDisplayMenu.csproj">
+      <Project>{94342d09-115b-429a-9329-0369afa45e88}</Project>
+      <Name>ConsoleDisplayMenu</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

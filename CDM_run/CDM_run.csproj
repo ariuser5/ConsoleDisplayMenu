@@ -45,12 +45,14 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Sample\Methods.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="Presets.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Sample\MainMenuPage.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ConsoleDisplayMenu\ConsoleDisplayMenu.csproj">

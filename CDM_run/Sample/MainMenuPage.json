@@ -1,0 +1,55 @@
+{
+  "name": "MainMenuPage",
+  "type": "Page",
+  "script": "Sample\\Methods.vb>Methods.MainMenu()",
+  "layout": "Vertical",
+  "components": [
+    {
+      "name": "HeaderInfo",
+      "type": "Div",
+      "layout": "Vertical",
+      "components": [
+        "Label0: #{preset0} preset value here",
+        "Label1: ${Sample\\Methods.vb>Methods.GetThree()} script value here",
+        "Label2: ${Sample\\Methods.vb>Methods.GetThree(#{preset0})} combined value here",
+        {
+          "type": "Div",
+          "components": [
+            {
+              "type": "text",
+              "value": "Label3"
+            },
+            {
+              "type": "Preset",
+              "target": "preset0"
+            }
+          ]
+        },
+        {
+          "type": "Div",
+          "components": [
+            {
+              "type": "text",
+              "value": "Label4"
+            },
+            {
+              "type": "Preset",
+              "target": "preset1",
+              "presetType": "Property"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OptionsInfo",
+      "type": "Div",
+      "layout": "Vertical",
+      "components": [
+        "1.Greet",
+        "2.BlankPage",
+        "3.Exit"
+      ]
+    }
+  ]
+}

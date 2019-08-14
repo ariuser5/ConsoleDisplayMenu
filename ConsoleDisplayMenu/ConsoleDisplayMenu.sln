@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CDM_run", "..\CDM_run\CDM_r
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeCompile", "..\RuntimeCompile\RuntimeCompile.csproj", "{DBDCE98C-1E8C-4B9B-A8E9-BA73C0B48A79}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "..\UnitTests\UnitTests.csproj", "{E240F760-6E41-4CC0-9E42-0118596E4398}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,18 @@ Global
 		{94342D09-115B-429A-9329-0369AFA45E88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{94342D09-115B-429A-9329-0369AFA45E88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{94342D09-115B-429A-9329-0369AFA45E88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA775DD8-0D13-445A-AFAE-80F4CF090F4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA775DD8-0D13-445A-AFAE-80F4CF090F4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA775DD8-0D13-445A-AFAE-80F4CF090F4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA775DD8-0D13-445A-AFAE-80F4CF090F4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBDCE98C-1E8C-4B9B-A8E9-BA73C0B48A79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBDCE98C-1E8C-4B9B-A8E9-BA73C0B48A79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBDCE98C-1E8C-4B9B-A8E9-BA73C0B48A79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBDCE98C-1E8C-4B9B-A8E9-BA73C0B48A79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E240F760-6E41-4CC0-9E42-0118596E4398}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E240F760-6E41-4CC0-9E42-0118596E4398}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E240F760-6E41-4CC0-9E42-0118596E4398}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E240F760-6E41-4CC0-9E42-0118596E4398}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

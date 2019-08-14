@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleDisplayMenu", "Conso
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CDM_run", "..\CDM_run\CDM_run.csproj", "{FA775DD8-0D13-445A-AFAE-80F4CF090F4B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeCompile", "..\RuntimeCompile\RuntimeCompile.csproj", "{DBDCE98C-1E8C-4B9B-A8E9-BA73C0B48A79}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

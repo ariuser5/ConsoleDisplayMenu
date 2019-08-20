@@ -63,6 +63,12 @@ namespace ConsoleDisplayMenu
 		public Preset FindPref(string tag) => (Preset) Components.First(c => c.name == tag);
 		public Div FindDiv(string tag) => (Div) Components.First(c => c.name == tag);
 		public Page FindPage(string tag) => (Page) Components.First(c => c.name == tag);
+		public JsonObject Find(string name) => Components.First(c => c.name == name);
+		public T Find<T>(string name) where T : JsonObject => (T) Components.First(c => c.name == name);
+		public Text FindText(string name) => (Text) Components.First(c => c.name == name);
+		public Pref FindPref(string name) => (Pref) Components.First(c => c.name == name);
+		public Div FindDiv(string name) => (Div) Components.First(c => c.name == name);
+		public Page FindPage(string name) => (Page) Components.First(c => c.name == name);
 
 	}
 }

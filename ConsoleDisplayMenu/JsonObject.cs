@@ -13,8 +13,25 @@ namespace ConsoleDisplayMenu
 
 		public enum JsonObjectType
 		{
-			JsonObject, Text, Preset, Script, Div, Page
+			JsonObject, Text, Pref, Script, Div, Page
 		}
+
+		//public static implicit operator JsonObject(string json) {
+		//	var metas = ReadMetaComponents(json);
+
+		//	if(metas.Count() == 0) {
+		//		throw new Exception("Unexpected behaviour");
+
+		//	} else if(metas.Count() == 1) {
+		//		switch(metas.Single().First()) {
+		//			case '#': return new JsonObject(JsonObjectType.Pref);
+		//			case '$': return new JsonObject(JsonObjectType.Script);
+		//			default: return new JsonObject(JsonObjectType.Text);
+		//		}
+
+		//	} else
+		//		return new JsonObject(JsonObjectType.Div);
+		//}
 
 		public static implicit operator JsonObject(string json) {
 			var metas = ReadMetaComponents(json);

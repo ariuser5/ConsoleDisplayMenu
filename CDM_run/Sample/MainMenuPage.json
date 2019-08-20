@@ -20,7 +20,7 @@
               "value": "Label3"
             },
             {
-              "type": "Preset",
+              "type": "Pref",
               "target": "preset0"
             }
           ]
@@ -33,7 +33,7 @@
               "value": "Label4"
             },
             {
-              "type": "Preset",
+              "type": "Pref",
               "target": "preset1",
               "presetType": "Property"
             }

@@ -11,27 +11,38 @@ namespace ConsoleDisplayMenu
 	{
 
 		public static implicit operator Text(string json) {
-			Text newText = new Text() {
-				json = json,
-				name = "Text" + unnamedTextCount,
-				value = json
-			};
-			unnamedTextCount++;
-
-			return newText;
+			return new Text() { value = json };
 		}
 
 
-		[JsonProperty]
+
+
+		[JsonProperty(Order = 2)]
 		public string value;
 
 
-		public Text() : base(JsonObjectType.Text) { }
+
+		[JsonConstructor]
+		private Text(
+			string name,
+			string value = ""
+			) : base(name, JsonObjectType.Text) {
+
+			this.value = value;
+			instances.Add(this);
+		}
+
+		public Text() : this(null) {
+			instances.Add(this);
+		}
+
 
 
 		public override string ToString() {
 			return "Text_" + name;
 		}
+
+		~Text() => instances.Remove(this);
 
 	}
 }

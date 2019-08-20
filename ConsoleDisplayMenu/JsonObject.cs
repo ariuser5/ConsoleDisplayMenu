@@ -34,109 +34,239 @@ namespace ConsoleDisplayMenu
 		//}
 
 		public static implicit operator JsonObject(string json) {
-			var metas = ReadMetaComponents(json);
-
-			if(metas.Count() == 0) {
-				throw new Exception("Unexpected behaviour");
-
-			} else if(metas.Count() == 1) {
-				return new JsonObject(JsonObjectType.Div) { metaDefined = true }; ;
-
-			} else {
-
-				switch(metas.Single().First()) {
-					case '#':
-						return new JsonObject(JsonObjectType.Preset) { metaDefined = true };
-
-					case '$':
-						return new JsonObject(JsonObjectType.Script) { metaDefined = true };
-
-					default:
-						return new JsonObject(JsonObjectType.Text) { metaDefined = true };
-				}
-			}
+			return new JsonObject("MetaJsonObject", JsonObjectType.JsonObject);
 		}
 
 
+		protected static List<JsonObject> instances = new List<JsonObject>();
 
-		internal static int unnamedTextCount = 0;
-		internal static int unnamedPresetCount = 0;
-		internal static int unnamedScritpCount = 0;
-		internal static int unnamedDivCount = 0;
-		internal static int unnamedPageCount = 0;
+
 
 
 		public static string PresetsFile = "Presets.json";
 
 
-		public static void Render(string page) {
-			//todo
+		public static void Render(JsonObject jsonObject) {
+			var executionStack = new Stack<Script>();
+
+			void recursiveRender(JsonObject jsonObj) {
+				switch(jsonObj.type) {
+					case JsonObjectType.Text:
+						Console.WriteLine(((Text) jsonObj).value);
+						break;
+
+					case JsonObjectType.Pref:
+						Console.WriteLine(((Pref) jsonObj).Invoke());
+						break;
+
+					case JsonObjectType.Script:
+						Console.WriteLine(((Script) jsonObj).Invoke());
+						break;
+
+					case JsonObjectType.Div:
+
+						var jsonDiv = (Div) jsonObj;
+
+						foreach(JsonObject child in jsonDiv.components)
+							recursiveRender(child);
+
+						switch(jsonDiv.layout) {
+							case Container.LayoutType.Horizontal:
+								Console.Write(" ");
+								break;
+							case Container.LayoutType.Vertical:
+								Console.Write('\n');
+								break;
+							default: throw new NotImplementedException();
+						}
+						break;
+
+					case JsonObjectType.Page:
+						var jsonPage = (Page) jsonObj;
+
+						if(jsonPage.script != null)
+							executionStack.Push(jsonPage.script);
+
+						foreach(JsonObject child in jsonPage.components)
+							recursiveRender(child);
+
+						switch(jsonPage.layout) {
+							case Container.LayoutType.Horizontal:
+								Console.Write(" ");
+								break;
+							case Container.LayoutType.Vertical:
+								Console.Write('\n');
+								break;
+							default: throw new NotImplementedException();
+						}
+						break;
+
+					default: throw new NotImplementedException();
+				}
+			}
+
+
+			Console.Clear();
+			recursiveRender(jsonObject);
+
+			while(executionStack.Count > 0)
+				executionStack.Pop().Invoke();
 		}
 
 
 		public static JsonObject Deserialize(string json) {
-			JsonObject jsonObj = JsonConvert.DeserializeObject<JsonObject>(json);
-			jsonObj.json = json;
+			JsonSerializerSettings settings = new JsonSerializerSettings() {
+				DefaultValueHandling = DefaultValueHandling.Ignore,
+				ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
 
-			switch(jsonObj.type) {
+			};
+			JsonObject jsonObject = JsonConvert.DeserializeObject<JsonObject>(json, settings);
+
+			switch(jsonObject.type) {
+				case JsonObjectType.JsonObject:
+					throw new Exception("Unexpected Behaviour");
+
 				case JsonObjectType.Text:
-					return jsonObj.ConvertTo(JsonObjectType.Text);
+					jsonObject = JsonConvert.DeserializeObject<Text>(json, settings);
+					break;
 
-				case JsonObjectType.Preset:
-					return jsonObj.ConvertTo(JsonObjectType.Preset);
+				case JsonObjectType.Pref:
+					jsonObject = JsonConvert.DeserializeObject<Pref>(json, settings);
+					break;
 
 				case JsonObjectType.Script:
-					return jsonObj.ConvertTo(JsonObjectType.Script);
+					jsonObject = JsonConvert.DeserializeObject<Script>(json, settings);
+					((Script) jsonObject).DeserializeArgs(ReadPropertyArray(json, "args"));
+					break;
 
 				case JsonObjectType.Div:
-					return jsonObj.ConvertTo(JsonObjectType.Div);
+					jsonObject = JsonConvert.DeserializeObject<Div>(json, settings);
+					((Container) jsonObject).DeserializeComponents(ReadPropertyArray(json, "components"));
+					break;
 
 				case JsonObjectType.Page:
-					return jsonObj.ConvertTo(JsonObjectType.Page);
+					jsonObject = JsonConvert.DeserializeObject<Page>(json, settings);
+					((Container) jsonObject).DeserializeComponents(ReadPropertyArray(json, "components"));
+					break;
 
 				default: throw new NotImplementedException();
 			}
+
+			return jsonObject;
 		}
 
-		public static IEnumerable<string> ReadJsonComponents(string json) {
-			List<string> jsons = new List<string>();
-			StringBuilder sb = new StringBuilder();
+		public static string ReadPropertyValue(string json, string propertyName) {
+			var sb = new StringBuilder();
 
 			using(JsonTextReader reader = new JsonTextReader(new StringReader(json))) {
-				using(JsonTextWriter writer = new JsonTextWriter(new StringWriter(sb))) {
+				using(JsonTextWriter writer = new JsonTextWriter(new StringWriter(sb)) { Formatting = Formatting.Indented }) {
 
-					if(reader.Path == "components") {
-						writer.WriteToken(reader);
-						jsons.Add(sb.ToString());
-						sb.Clear();
+					while(reader.Read()) {
+						if(reader.Path == propertyName) {
+							reader.Read();
+							writer.WriteToken(reader);
+							return sb.ToString();
+						}
+					}
+
+				}
+			}
+
+			throw new ArgumentException(string.Format("Property with name \"{0}\" could not be found", propertyName));
+		}
+
+		public static IEnumerable<string> ReadPropertyArray(string json, string propertyArrayName) {
+			List<string> jsons = null;
+			var match = false;
+			var sb = new StringBuilder();
+
+			using(JsonTextReader reader = new JsonTextReader(new StringReader(json))) {
+				using(JsonTextWriter writer = new JsonTextWriter(new StringWriter(sb)) { Formatting = Formatting.Indented }) {
+
+					while(reader.Read()) {
+
+						if(!match) {
+							if(reader.Path == propertyArrayName && reader.TokenType == JsonToken.StartArray) {
+								jsons = new List<string>();
+								match = true;
+							}
+						} else {
+
+							if(reader.Depth <= 1) break;
+
+							writer.WriteToken(reader);
+							jsons.Add(sb.ToString());
+							sb.Clear();
+						}
 
 					}
+
 				}
 			}
 
 			return jsons;
 		}
 
-		public static IEnumerable<string> ReadMetaComponents(string json) {
+		internal static JsonObject DeserializeMeta(string metaText) {
+			var metas = ParseMetaText(metaText);
+
+			if(metas.Count() == 0) {
+				throw new Exception("Unexpected Behaviour");
+			} else if(metas.Count() == 1) {
+
+				switch(metas.Single().First()) {
+					case '#': return (Pref) metas.Single();
+					case '$': return (Script) metas.Single();
+					default: return (Text) metas.Single();
+				}
+
+			} else {
+
+				var newDiv = new Div() {
+					layout = Container.LayoutType.Horizontal
+				};
+
+				foreach(string meta in metas) {
+					var deserialized = DeserializeMeta(meta);
+
+					newDiv.components.Add(deserialized);
+				}
+
+				return newDiv;
+			}
+		}
+
+		internal static IEnumerable<string> ParseMetaText(string meta) {
 			List<string> metas = new List<string>();
 			string temp0 = string.Empty;
 			string temp1 = string.Empty;
+			int depth = 0;
 			int index = 0;
 
 			bool escaped() {
 				if(index == 0) return false;
-				if(json[index - 1] == '\\') return true;
+				if(meta[index - 1] == '\\') return true;
 				return false;
 			}
+			void addMetas() {
+				if(temp0 != string.Empty) {
+					metas.Add(temp0);
+					temp0 = string.Empty;
+				}
+
+				if(temp1 != string.Empty) {
+					metas.Add(temp1);
+					temp1 = string.Empty;
+				}
+			}
 			void readInner() {
-				int depth = 0;
 
 				if(escaped()) return;
-				else temp1 += json[index];
+				else temp1 += meta[index];
 
-				for(int i = index + 1 ; i < json.Length ; i++) {
+				for(int i = index + 1 ; i < meta.Length ; i++) {
 
-					switch(json[i]) {
+					switch(meta[i]) {
 						case '{':
 							depth++;
 							break;
@@ -145,47 +275,39 @@ namespace ConsoleDisplayMenu
 							break;
 					}
 
-					temp1 += json[i];
+					temp1 += meta[i];
 
 					if(depth == 0) {
-
-						if(json[i] == '}') {
-							index = i + 1;
-							return;
-						} else {
-							temp1 = string.Empty;
-							return;
-						}
+						index = i + 1;
+						return;
 					}
 
 				}
 
 				temp0 = string.Concat(temp0, temp1);
 				temp1 = string.Empty;
-				index = json.Length;
+				depth = 0;
+				index = meta.Length;
 			}
 			void read() {
 
-				while(index < json.Length) {
+				while(index < meta.Length) {
 
-					if(json[index] == '#' || json[index] == '$') {
+					if(meta[index] == '#' || meta[index] == '$') {
 						readInner();
 
 						if(temp1 != string.Empty) {
-							metas.Add(temp0);
-							metas.Add(temp1);
-							temp0 = string.Empty;
-							temp1 = string.Empty;
+							addMetas();
 							continue;
 						}
 					}
 
-					temp0 += json[index];
+					if(index < meta.Length)
+						temp0 += meta[index];
 					index++;
 				}
 
-				if(temp0 != string.Empty) metas.Add(temp0);
-
+				if(temp0 != string.Empty) addMetas();
 			}
 
 			read();
@@ -193,98 +315,112 @@ namespace ConsoleDisplayMenu
 			return metas;
 		}
 
+		internal static string ReadMeta(string rawMeta) {
+			return rawMeta.Substring(1, rawMeta.Length - 2);
+			var meta = string.Empty;
 
-		protected bool metaDefined;
+			for(int i = 0 ; i < rawMeta.Length - 1 ; i++) {
+				if(rawMeta[i] == '\\' && rawMeta[i - 1] == '\\') continue;
 
-		[JsonIgnore]
-		public string json;
-		[JsonProperty]
+				meta += rawMeta[i];
+			}
+
+			return meta;
+		}
+
+		internal static bool IsMeta(string text) {
+			if(text.StartsWith("\"") && text.EndsWith("\"")) return true;
+			else return false;
+		}
+
+
+
+		//internal static string JsonToMeta(string jsonText) {
+		//	var metaText = string.Empty;
+
+		//	foreach(char ch in jsonText) {
+		//		if(ch == '\\') metaText += ch;
+
+		//		metaText += ch;
+		//	}
+
+		//	return string.Concat('"', metaText, '"');
+		//}
+
+		//internal static string MetaToJson(string metaText) {
+		//	var json = string.Empty;
+
+		//	for(int i = 1 ; i < metaText.Length - 2 ; i++) {
+		//		if(metaText[i] == '\\' && metaText[i - 1] == '\\') continue;
+		//		json += metaText[i];
+		//	}
+
+		//	return json;
+		//}
+
+
+		internal static string GetDefaultName(JsonObjectType requestType) {
+			switch(requestType) {
+				case JsonObjectType.JsonObject: throw new Exception("Unexpected exception");
+				case JsonObjectType.Text: return "Text";
+				case JsonObjectType.Pref: return "Pref";
+				case JsonObjectType.Script: return "Script";
+				case JsonObjectType.Div: return "Div";
+				case JsonObjectType.Page: return "Page";
+				default: throw new NotImplementedException();
+			}
+		}
+
+		internal static string AssignName(JsonObjectType type) {
+			var prefix = GetDefaultName(type);
+			int count = 0;
+
+			while(true) {
+				if(!instances.Any(item => item.name == prefix + count))
+					return prefix + count;
+
+				count++;
+			}
+		}
+
+		internal static string AssignName(string name, JsonObjectType type) {
+			if(name == null) return AssignName(type);
+
+			var current = name;
+			var suffix = string.Empty;
+			int count = 1;
+
+			while(true) {
+				if(!instances.Any(item => item.name == current + suffix))
+					return current + suffix;
+
+				suffix = string.Format("({0})", count);
+				count++;
+			}
+		}
+
+
+
+
+
+
+		[JsonProperty(Order = 0)]
 		public string name;
-		[JsonProperty]
+		[JsonProperty(Order = 1)]
 		public JsonObjectType type;
 
 
-		public JsonObject() {
-			metaDefined = false;
+		[JsonConstructor]
+		private JsonObject() {
 			type = JsonObjectType.JsonObject;
 		}
 
-		public JsonObject(JsonObjectType type) : base() {
+		protected JsonObject(string name, JsonObjectType type) : base() {
 			this.type = type;
+			this.name = AssignName(name, type);
 		}
 
-		public JsonObject ConvertTo(JsonObjectType type) {
-			JsonObject newObj;
-
-			switch(type) {
-				case JsonObjectType.JsonObject:
-					throw new Exception("Converting a JsonObject instance to itself is not allowed");
-
-				case JsonObjectType.Text:
-					newObj = JsonConvert.DeserializeObject<Text>(json);
-					newObj.json = json;
-					newObj.metaDefined = metaDefined;
-
-					if(name == null) {
-						name = "Text" + unnamedTextCount;
-						unnamedTextCount++;
-					}
-
-					break;
-				case JsonObjectType.Preset:
-					newObj = JsonConvert.DeserializeObject<Preset>(json);
-					newObj.json = json;
-					newObj.metaDefined = metaDefined;
-
-					if(name == null) {
-						name = "Preset" + unnamedPresetCount;
-						unnamedPresetCount++;
-					}
-
-					break;
-				case JsonObjectType.Script:
-					newObj = JsonConvert.DeserializeObject<Script>(json);
-					newObj.json = json;
-					newObj.metaDefined = metaDefined;
-
-					if(name == null) {
-						name = "Script" + unnamedScritpCount;
-						unnamedScritpCount++;
-					}
-
-					break;
-
-				case JsonObjectType.Div:
-					newObj = JsonConvert.DeserializeObject<Div>(json);
-					newObj.json = json;
-					newObj.metaDefined = metaDefined;
-					((Container) newObj).DeserializeChildren();
-
-					if(name == null) {
-						name = "Div" + unnamedDivCount;
-						unnamedDivCount++;
-					}
-
-					break;
-				case JsonObjectType.Page:
-					newObj = JsonConvert.DeserializeObject<Page>(json);
-					newObj.json = json;
-					newObj.metaDefined = metaDefined;
-					((Container) newObj).DeserializeChildren();
-
-					if(name == null) {
-						name = "Page" + unnamedPageCount;
-						unnamedPageCount++;
-					}
-
-					break;
-
-				default:
-					throw new NotImplementedException();
-			}
-
-			return newObj;
-		}
+		public string ToJson() => JsonConvert.SerializeObject(this, formatting: Formatting.Indented);
 
 	}
 }

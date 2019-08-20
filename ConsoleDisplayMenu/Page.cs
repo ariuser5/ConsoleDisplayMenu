@@ -10,25 +10,56 @@ namespace ConsoleDisplayMenu
 	public class Page : Container
 	{
 
-		public static Page Import(string source) {
-			var jsonSrc = System.IO.File.ReadAllText(source);
 
-			return (Page) new JsonObject(JsonObjectType.Page) { json = jsonSrc }.ConvertTo(JsonObjectType.Page);
+		public static Page Import(string source) {
+			var json = System.IO.File.ReadAllText(source);
+			var page = Deserialize(json);
+
+			if(page.type == JsonObjectType.Page) return (Page) page;
+			else throw new Exception(
+				string.Format("Json in source file cannot be deserialized as {0} object", typeof(Page).ToString())
+			);
 		}
 
 
-		[JsonProperty]
+		[JsonProperty(Order = 4)]
 		public Script script;
 
 
-		public Page() : base(JsonObjectType.Page) {
-			Width = 50;
-			Height = 50;
+
+		[JsonConstructor]
+		private Page(
+			string name,
+			LayoutType layout = default(LayoutType),
+			Script script = null,
+			int width = 0,
+			int height = 0,
+			int leftMargin = 0,
+			int topMargin = 0,
+			int rightMargin = 0,
+			int bottomMargin = 0,
+			IEnumerable<JsonObject> children = null
+			) : base(name, JsonObjectType.Page) {
+
+			this.layout = layout;
+			this.script = script;
+			this.Width = width;
+			this.Height = height;
+			this.LeftMargin = leftMargin;
+			this.TopMargin = topMargin;
+			this.RightMargin = rightMargin;
+			this.BottomMargin = bottomMargin;
 		}
+
+		public Page() : this(null) { }
+
+
 
 		public override string ToString() {
 			return "Page_" + name;
 		}
+
+		~Page() => instances.Remove(this);
 
 	}
 }

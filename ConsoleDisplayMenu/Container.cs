@@ -17,8 +17,8 @@ namespace ConsoleDisplayMenu
 
 		[JsonProperty]
 		public LayoutType layout;
-		[JsonIgnore]
-		public List<JsonObject> children;
+		[JsonProperty("components")]
+		public List<JsonObject> components;
 
 		[JsonProperty]
 		public int Width;
@@ -38,31 +38,35 @@ namespace ConsoleDisplayMenu
 		[JsonIgnore]
 		public IEnumerable<JsonObject> Components {
 			get {
-				//todo
-				//Return all JsonObject instances in this Container
-				return null;
+				IEnumerable<JsonObject> aggregateChildren(List<JsonObject> seed, IEnumerable<JsonObject> children) {
+					foreach(JsonObject ch in children) {
+						seed.Add(ch);
+
+						if(ch as Container != null)
+							aggregateChildren(seed, (ch as Container).components);
+					}
+
+					return seed;
+				}
+
+				return aggregateChildren(new List<JsonObject>(), components);
 			}
 		}
 
 
-		protected Container(JsonObjectType type) : base(type) { }
+		protected Container(string name, JsonObjectType type) : base(name, type) { }
 
 
-		internal void DeserializeChildren() {
-			IEnumerable<string> jsons = metaDefined ? ReadMetaComponents(json) : ReadJsonComponents(json);
+		internal void DeserializeComponents(IEnumerable<string> inners) {
+			components = new List<JsonObject>();
 
-			children = new List<JsonObject>();
+			foreach(string inner in inners) {
+				var deserialized = IsMeta(inner) ? DeserializeMeta(ReadMeta(inner)) : Deserialize(inner);
 
-			foreach(string component in jsons)
-				children.Add(Deserialize(component));
+				components.Add(deserialized);
+			}
 		}
 
-		public JsonObject Find(string tag) => Components.First(c => c.name == tag);
-		public T Find<T>(string tag) where T : JsonObject => (T) Components.First(c => c.name == tag);
-		public Text FindText(string tag) => (Text) Components.First(c => c.name == tag);
-		public Preset FindPref(string tag) => (Preset) Components.First(c => c.name == tag);
-		public Div FindDiv(string tag) => (Div) Components.First(c => c.name == tag);
-		public Page FindPage(string tag) => (Page) Components.First(c => c.name == tag);
 		public JsonObject Find(string name) => Components.First(c => c.name == name);
 		public T Find<T>(string name) where T : JsonObject => (T) Components.First(c => c.name == name);
 		public Text FindText(string name) => (Text) Components.First(c => c.name == name);

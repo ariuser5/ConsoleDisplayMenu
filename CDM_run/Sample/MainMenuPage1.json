@@ -1,0 +1,64 @@
+{
+  "name": "MainMenuPage",
+  "type": "Page",
+  "script": {
+    "type": "Script",
+    "source": "Sample\\Methods.vb",
+    "className": "Methods",
+    "methodName": "Main",
+    "args": [
+      {
+        "type": "Pref",
+        "target": "preset0"
+      }
+    ]
+  },
+  "layout": "Vertical",
+  "components": [
+    "HAHA",
+    {
+      "name": "HeaderInfo",
+      "type": "Div",
+      "layout": "Vertical",
+      "components": [
+        {
+          "type": "Div",
+          "components": [
+            {
+              "type": "text",
+              "value": "Label3"
+            },
+            {
+              "type": "Pref",
+              "target": "preset0"
+            }
+          ]
+        },
+        {
+          "type": "Div",
+          "components": [
+            {
+              "type": "text",
+              "value": "Label4"
+            },
+            {
+              "type": "Pref",
+              "target": "preset1",
+              "presetType": "Property"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OptionsInfo",
+      "type": "Div",
+      "layout": "Vertical",
+      "components": [
+        "1.Greet",
+        "2.BlankPage",
+        "3.Exit"
+      ]
+    }
+  ]
+}

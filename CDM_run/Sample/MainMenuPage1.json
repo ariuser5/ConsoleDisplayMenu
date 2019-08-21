@@ -1,21 +1,10 @@
 {
   "name": "MainMenuPage",
   "type": "Page",
-  "script": {
-    "type": "Script",
-    "source": "Sample\\Methods.vb",
-    "className": "Methods",
-    "methodName": "Main",
-    "args": [
-      {
-        "type": "Pref",
-        "target": "preset0"
-      }
-    ]
-  },
+  "script": "Sample\\Methods.cs>Methods.MainMenuScript()",
   "layout": "Vertical",
   "components": [
-    "HAHA",
+    "HAHA: ${Sample\\Methods.cs>Methods.ReturnArg(#{Preset0})}",
     {
       "name": "HeaderInfo",
       "type": "Div",

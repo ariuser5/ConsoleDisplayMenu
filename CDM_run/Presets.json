@@ -10,3 +10,18 @@
     "defaultValue": null
   }
 ]
+/*
+  {
+    "type": "Script",
+    "source": "Sample\\Methods.cs",
+    "className": "Methods",
+    "methodName": "Main",
+    "args": [
+      {
+        "type": "Pref",
+        "target": "preset0"
+      }
+    ]
+  },
+  "Sample\\Methods.cs>Methods.MainMenuScript()",
+*/

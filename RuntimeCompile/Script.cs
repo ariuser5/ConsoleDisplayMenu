@@ -45,10 +45,10 @@ namespace RuntimeCompile
 
 			object retVal = null;
 			string code = File.ReadAllText(source);
-			Assembly asm = BuildAssembly(code);
 			object instance = null;
 			Type type = null;
 			string typeName = @namespace != string.Empty ? @namespace + className : className;
+			Assembly asm = BuildAssembly(code);
 
 			if(isStatic) {
 				type = asm.GetType(typeName);

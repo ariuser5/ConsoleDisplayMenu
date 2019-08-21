@@ -26,8 +26,8 @@ namespace ConsoleDisplayMenu
 
 
 		[JsonConstructor]
-		private Div(
-			string name,
+		public Div(
+			string name = null,
 			LayoutType layout = default(LayoutType),
 			int width = 0,
 			int height = 0,
@@ -35,8 +35,8 @@ namespace ConsoleDisplayMenu
 			int topMargin = 0,
 			int rightMargin = 0,
 			int bottomMargin = 0,
-			IEnumerable<JsonObject> components = null
-			) : base(name, JsonObjectType.Div) {
+			IEnumerable<object> components = null
+			) : base(name, JsonObjectType.Div, components) {
 
 			this.layout = layout;
 			this.Width = width;
@@ -45,19 +45,12 @@ namespace ConsoleDisplayMenu
 			this.TopMargin = topMargin;
 			this.RightMargin = rightMargin;
 			this.BottomMargin = bottomMargin;
-
-			instances.Add(this);
 		}
-
-		public Div() : this(null) { }
-
 
 
 		public override string ToString() {
 			return "Div_" + name;
 		}
-
-		~Div() => instances.Remove(this);
 
 	}
 }

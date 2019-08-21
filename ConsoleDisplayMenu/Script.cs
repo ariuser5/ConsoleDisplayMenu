@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,56 +13,50 @@ namespace ConsoleDisplayMenu
 	public class Script : JsonObject
 	{
 
-		public static implicit operator Script(string json) {
-			string[] readAddress() {
-				if(json.StartsWith("$")) {
-					var retStr = string.Empty;
-					var depth = 0;
+		public static implicit operator Script(string meta) {
+			var address = new string(meta.TakeWhile(ch => ch != '(').ToArray());
+			var source = string.Empty;
+			var @namespace = string.Empty;
+			var className = string.Empty;
+			var methodName = string.Empty;
+			IEnumerable<string> scope = null;
+			IEnumerable<object> args = null;
 
-					foreach(char ch in json) {
+			if(address.Contains('>')) {
+				var delimiterIndex = address.IndexOf('>');
 
-						switch(ch) {
-							case '{':
-								depth++;
-								if(depth == 1) continue;
-								break;
-
-							case '}':
-								depth--;
-								break;
-						}
-
-						if(retStr.Length > 0 && depth == 0)
-							return retStr.Split('>');
-
-						if(depth > 0)
-							retStr += ch;
-
-					}
-
-					throw new Exception("Unexpected behaviour");
-
-				} else return json.Split('>');
+				source = address.Substring(0, delimiterIndex);
+				scope = address.Substring(delimiterIndex + 1).Split('.');
+			} else {
+				scope = address.Split('.');
 			}
 
-			var address = readAddress();
-			var callId = address[1].Split('(')[0].Split('.');
+			if(scope.Count() == 1) {
+				methodName = scope.ElementAt(0);
 
-			Script newScript = new Script() {
-				inner = JsonToMeta(json),
-				name = "Script" + unnamedScriptCount,
-				metaDefined = true,
-				source = address[0],
-				@namespace = callId.Count() == 3 ? callId[0] : string.Empty,
-				className = callId.Count() == 3 ? callId[1] : callId[0],
-				methodName = callId.Count() == 3 ? callId[2] : callId[1],
-				argBlock = address[1].Split('(')[1].Split(')')[0]
-			};
+			} else if(scope.Count() == 2) {
+				className = scope.ElementAt(0);
+				methodName = scope.ElementAt(1);
 
-			newScript.DeserializeArgs();
-			unnamedScriptCount++;
+			} else if(scope.Count() == 3) {
+				@namespace = scope.ElementAt(0);
+				className = scope.ElementAt(1);
+				methodName = scope.ElementAt(2);
 
-			return newScript;
+			} else throw new Exception(
+				string.Format(
+					"{0} object scope could not be determined from: {1}",
+					typeof(Script).ToString(),
+					meta
+				)
+			);
+
+			var temp = Tools.ReadBetween(meta, '(', ')');
+			args = temp.
+				Split(",".ToArray(), options: StringSplitOptions.RemoveEmptyEntries).
+				Select(arg => arg.Trim());
+
+			return new Script(null, source, @namespace, className, methodName, true, args);
 		}
 
 
@@ -99,13 +94,13 @@ namespace ConsoleDisplayMenu
 
 		[JsonConstructor]
 		private Script(
-			string name,
-			string source = "",
-			string @namespace = "",
-			string className = "",
-			string methodName = "",
-			bool isStatic = true,
-			IEnumerable<JsonObject> args = null
+			string name = null,
+			string source = null,
+			string @namespace = null,
+			string className = null,
+			string methodName = null,
+			bool isStatic = false,
+			IEnumerable<object> args = null
 			) : base(name, JsonObjectType.Script) {
 
 			this.source = source;
@@ -113,9 +108,8 @@ namespace ConsoleDisplayMenu
 			this.className = className;
 			this.methodName = methodName;
 			this.isStatic = isStatic;
-			this.args = args.ToList();
 
-			instances.Add(this);
+			DeserializeArgs(args);
 		}
 
 		public Script(
@@ -124,20 +118,12 @@ namespace ConsoleDisplayMenu
 			string className = "",
 			string methodName = "",
 			bool isStatic = true,
-			IEnumerable<JsonObject> args = null
+			IEnumerable<object> args = null
 		) : this(null, source, @namespace, className, methodName, isStatic, args) { }
 
-		public Script() : this(name: null) { }
 
 
-		public object Invoke() {
-			return RuntimeCompile.Script.Execute(source, @namespace, className, methodName, isStatic, args);
-		}
 
-		internal void DeserializeArgs(IEnumerable<string> inners) {
-			foreach(string inner in inners) {
-				//todo
-				args.Add(Deserialize(inner));
 		public override object Evaluate() {
 			if(source == string.Empty) {
 				//Internal source
@@ -155,21 +141,23 @@ namespace ConsoleDisplayMenu
 			}
 		}
 
-		private IEnumerable<object> CompiledArguments() {
-			var argValues = new List<object>();
+		private void DeserializeArgs(IEnumerable<object> inners) {
+			args = new List<JsonObject>();
 
-			foreach(object arg in args)
-				if(arg as IReferenceValue != null) argValues.Add(((IReferenceValue) arg).Invoke());
-				else argValues.Add(((Text) arg).value);
+			foreach(string inner in inners.Select(obj => obj.ToString())) {
+				var deserialized = IsMeta(inner) ? DeserializeMeta(inner) : Deserialize(inner);
 
-			return argValues;
+				args.Add(deserialized);
+			}
+		}
+
+		private object[] CompiledArguments() {
+			return (from arg in args select arg.Evaluate()).ToArray();
 		}
 
 		public override string ToString() {
 			return "Script_" + name;
 		}
-
-		~Script() => instances.Remove(this);
 
 	}
 }

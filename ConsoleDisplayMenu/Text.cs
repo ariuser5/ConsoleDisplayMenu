@@ -10,8 +10,8 @@ namespace ConsoleDisplayMenu
 	public class Text : JsonObject
 	{
 
-		public static implicit operator Text(string json) {
-			return new Text() { value = json };
+		public static implicit operator Text(string meta) {
+			return new Text() { value = meta };
 		}
 
 
@@ -23,17 +23,12 @@ namespace ConsoleDisplayMenu
 
 
 		[JsonConstructor]
-		private Text(
-			string name,
-			string value = ""
+		public Text(
+			string name = null,
+			string value = null
 			) : base(name, JsonObjectType.Text) {
 
 			this.value = value;
-			instances.Add(this);
-		}
-
-		public Text() : this(null) {
-			instances.Add(this);
 		}
 
 
@@ -44,8 +39,6 @@ namespace ConsoleDisplayMenu
 		public override string ToString() {
 			return "Text_" + name;
 		}
-
-		~Text() => instances.Remove(this);
 
 	}
 }

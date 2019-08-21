@@ -8,13 +8,14 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-	public class JsonObject
+	public enum JsonObjectType
 	{
+		JsonObject, Text, Pref, Script, Div, Page
+	}
 
-		public enum JsonObjectType
-		{
-			JsonObject, Text, Pref, Script, Div, Page
-		}
+
+	public abstract class JsonObject : IEvaluate
+	{
 
 		//public static implicit operator JsonObject(string json) {
 		//	var metas = ReadMetaComponents(json);
@@ -34,7 +35,7 @@ namespace ConsoleDisplayMenu
 		//}
 
 		public static implicit operator JsonObject(string json) {
-			return new JsonObject("MetaJsonObject", JsonObjectType.JsonObject);
+			return new Proto();
 		}
 
 
@@ -67,48 +68,148 @@ namespace ConsoleDisplayMenu
 		}
 
 
-		public static JsonObject Deserialize(string json) {
+		internal static JsonObject Deserialize(string json) {
 			JsonSerializerSettings settings = new JsonSerializerSettings() {
 				DefaultValueHandling = DefaultValueHandling.Ignore,
 				ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
 
 			};
-			JsonObject jsonObject = JsonConvert.DeserializeObject<JsonObject>(json, settings);
+			Proto protoObject = JsonConvert.DeserializeObject<Proto>(json, settings);
 
-			switch(jsonObject.type) {
+			switch(protoObject.type) {
 				case JsonObjectType.JsonObject:
 					throw new Exception("Unexpected Behaviour");
 
 				case JsonObjectType.Text:
-					jsonObject = JsonConvert.DeserializeObject<Text>(json, settings);
-					break;
+					return JsonConvert.DeserializeObject<Text>(json, settings);
 
 				case JsonObjectType.Pref:
-					jsonObject = JsonConvert.DeserializeObject<Pref>(json, settings);
-					break;
+					return JsonConvert.DeserializeObject<Pref>(json, settings);
 
 				case JsonObjectType.Script:
-					jsonObject = JsonConvert.DeserializeObject<Script>(json, settings);
-					((Script) jsonObject).DeserializeArgs(ReadPropertyArray(json, "args"));
-					break;
+					return JsonConvert.DeserializeObject<Script>(json, settings);
 
 				case JsonObjectType.Div:
-					jsonObject = JsonConvert.DeserializeObject<Div>(json, settings);
-					((Container) jsonObject).DeserializeComponents(ReadPropertyArray(json, "components"));
-					break;
+					return JsonConvert.DeserializeObject<Div>(json, settings);
 
 				case JsonObjectType.Page:
-					jsonObject = JsonConvert.DeserializeObject<Page>(json, settings);
-					((Container) jsonObject).DeserializeComponents(ReadPropertyArray(json, "components"));
-					break;
+					return JsonConvert.DeserializeObject<Page>(json, settings);
 
 				default: throw new NotImplementedException();
 			}
-
-			return jsonObject;
 		}
 
-		public static string ReadPropertyValue(string json, string propertyName) {
+		internal static JsonObject DeserializeMeta(string metaText) {
+			var metas = ParseMetaText(metaText);
+
+			if(metas.Count() == 0) {
+				throw new Exception("Unexpected Behaviour");
+			} else if(metas.Count() == 1) {
+
+				var meta = metas.Single();
+
+				switch(meta.First()) {
+					case '#': return (Pref) Tools.ReadBetween(meta, '{', '}');
+					case '$': return (Script) Tools.ReadBetween(meta, '{', '}');
+					default: return (Text) meta;
+				}
+
+			} else {
+
+				var newDiv = new Div() {
+					layout = Container.LayoutType.Horizontal
+				};
+
+				foreach(string meta in metas) {
+					var deserialized = DeserializeMeta(meta);
+
+					newDiv.components.Add(deserialized);
+				}
+
+				return new Div();
+			}
+		}
+
+		internal static IEnumerable<string> ParseMetaText(string meta) {
+			List<string> metas = new List<string>();
+			string temp0 = string.Empty;
+			string temp1 = string.Empty;
+			int depth = 0;
+			int index = 0;
+
+			bool Escaped() {
+				if(index == 0) return false;
+				if(meta[index - 1] == '\\') return true;
+				return false;
+			}
+			void AddMetas() {
+				if(temp0 != string.Empty && temp0.Any(ch => !char.IsWhiteSpace(ch))) {
+					metas.Add(temp0.Trim());
+					temp0 = string.Empty;
+				}
+
+				if(temp1 != string.Empty && temp1.Any(ch => !char.IsWhiteSpace(ch))) {
+					metas.Add(temp1.Trim());
+					temp1 = string.Empty;
+				}
+			}
+			void ReadInner() {
+
+				if(Escaped()) return;
+				else temp1 += meta[index];
+
+				for(int i = index + 1 ; i < meta.Length ; i++) {
+
+					switch(meta[i]) {
+						case '{':
+							depth++;
+							break;
+						case '}':
+							depth--;
+							break;
+					}
+
+					temp1 += meta[i];
+
+					if(depth == 0) {
+						index = i + 1;
+						return;
+					}
+
+				}
+
+				temp0 = string.Concat(temp0, temp1);
+				temp1 = string.Empty;
+				depth = 0;
+				index = meta.Length;
+			}
+			void Read() {
+
+				while(index < meta.Length) {
+
+					if(meta[index] == '#' || meta[index] == '$') {
+						ReadInner();
+
+						if(temp1 != string.Empty) {
+							AddMetas();
+							continue;
+						}
+					}
+
+					if(index < meta.Length)
+						temp0 += meta[index];
+					index++;
+				}
+
+				if(temp0 != string.Empty) AddMetas();
+			}
+
+			Read();
+
+			return metas;
+		}
+
+		internal static string ReadPropertyValue(string json, string propertyName) {
 			var sb = new StringBuilder();
 
 			using(JsonTextReader reader = new JsonTextReader(new StringReader(json))) {
@@ -128,7 +229,7 @@ namespace ConsoleDisplayMenu
 			throw new ArgumentException(string.Format("Property with name \"{0}\" could not be found", propertyName));
 		}
 
-		public static IEnumerable<string> ReadPropertyArray(string json, string propertyArrayName) {
+		internal static IEnumerable<string> ReadPropertyArray(string json, string propertyArrayName) {
 			List<string> jsons = null;
 			var match = false;
 			var sb = new StringBuilder();
@@ -160,156 +261,10 @@ namespace ConsoleDisplayMenu
 			return jsons;
 		}
 
-		internal static JsonObject DeserializeMeta(string metaText) {
-			var metas = ParseMetaText(metaText);
-
-			if(metas.Count() == 0) {
-				throw new Exception("Unexpected Behaviour");
-			} else if(metas.Count() == 1) {
-
-				switch(metas.Single().First()) {
-					case '#': return (Pref) metas.Single();
-					case '$': return (Script) metas.Single();
-					default: return (Text) metas.Single();
-				}
-
-			} else {
-
-				var newDiv = new Div() {
-					layout = Container.LayoutType.Horizontal
-				};
-
-				foreach(string meta in metas) {
-					var deserialized = DeserializeMeta(meta);
-
-					newDiv.components.Add(deserialized);
-				}
-
-				return newDiv;
-			}
-		}
-
-		internal static IEnumerable<string> ParseMetaText(string meta) {
-			List<string> metas = new List<string>();
-			string temp0 = string.Empty;
-			string temp1 = string.Empty;
-			int depth = 0;
-			int index = 0;
-
-			bool escaped() {
-				if(index == 0) return false;
-				if(meta[index - 1] == '\\') return true;
-				return false;
-			}
-			void addMetas() {
-				if(temp0 != string.Empty) {
-					metas.Add(temp0);
-					temp0 = string.Empty;
-				}
-
-				if(temp1 != string.Empty) {
-					metas.Add(temp1);
-					temp1 = string.Empty;
-				}
-			}
-			void readInner() {
-
-				if(escaped()) return;
-				else temp1 += meta[index];
-
-				for(int i = index + 1 ; i < meta.Length ; i++) {
-
-					switch(meta[i]) {
-						case '{':
-							depth++;
-							break;
-						case '}':
-							depth--;
-							break;
-					}
-
-					temp1 += meta[i];
-
-					if(depth == 0) {
-						index = i + 1;
-						return;
-					}
-
-				}
-
-				temp0 = string.Concat(temp0, temp1);
-				temp1 = string.Empty;
-				depth = 0;
-				index = meta.Length;
-			}
-			void read() {
-
-				while(index < meta.Length) {
-
-					if(meta[index] == '#' || meta[index] == '$') {
-						readInner();
-
-						if(temp1 != string.Empty) {
-							addMetas();
-							continue;
-						}
-					}
-
-					if(index < meta.Length)
-						temp0 += meta[index];
-					index++;
-				}
-
-				if(temp0 != string.Empty) addMetas();
-			}
-
-			read();
-
-			return metas;
-		}
-
-		internal static string ReadMeta(string rawMeta) {
-			return rawMeta.Substring(1, rawMeta.Length - 2);
-			var meta = string.Empty;
-
-			for(int i = 0 ; i < rawMeta.Length - 1 ; i++) {
-				if(rawMeta[i] == '\\' && rawMeta[i - 1] == '\\') continue;
-
-				meta += rawMeta[i];
-			}
-
-			return meta;
-		}
-
 		internal static bool IsMeta(string text) {
-			if(text.StartsWith("\"") && text.EndsWith("\"")) return true;
-			else return false;
+			if(text.StartsWith("{") && text.EndsWith("}")) return false;
+			else return true;
 		}
-
-
-
-		//internal static string JsonToMeta(string jsonText) {
-		//	var metaText = string.Empty;
-
-		//	foreach(char ch in jsonText) {
-		//		if(ch == '\\') metaText += ch;
-
-		//		metaText += ch;
-		//	}
-
-		//	return string.Concat('"', metaText, '"');
-		//}
-
-		//internal static string MetaToJson(string metaText) {
-		//	var json = string.Empty;
-
-		//	for(int i = 1 ; i < metaText.Length - 2 ; i++) {
-		//		if(metaText[i] == '\\' && metaText[i - 1] == '\\') continue;
-		//		json += metaText[i];
-		//	}
-
-		//	return json;
-		//}
 
 
 		internal static string GetDefaultName(JsonObjectType requestType) {
@@ -359,6 +314,7 @@ namespace ConsoleDisplayMenu
 
 		[JsonProperty(Order = 0)]
 		public string name;
+
 		[JsonProperty(Order = 1)]
 		public JsonObjectType type;
 
@@ -371,9 +327,24 @@ namespace ConsoleDisplayMenu
 		protected JsonObject(string name, JsonObjectType type) : base() {
 			this.type = type;
 			this.name = AssignName(name, type);
+
+			instances.Add(this);
 		}
+
+		~JsonObject() => instances.Remove(this);
+
+
+
+		public abstract object Evaluate();
 
 		public string ToJson() => JsonConvert.SerializeObject(this, formatting: Formatting.Indented);
 
+
+		internal class Proto : JsonObject
+		{
+			public override object Evaluate() {
+				throw new Exception(string.Format("{0} as JsonObject derived type cannot be evaulate", typeof(Proto).ToString()));
+			}
+		}
 	}
 }

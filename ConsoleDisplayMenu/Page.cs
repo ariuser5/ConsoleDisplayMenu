@@ -28,8 +28,8 @@ namespace ConsoleDisplayMenu
 
 
 		[JsonConstructor]
-		private Page(
-			string name,
+		public Page(
+			string name = null,
 			LayoutType layout = default(LayoutType),
 			Script script = null,
 			int width = 0,
@@ -38,8 +38,8 @@ namespace ConsoleDisplayMenu
 			int topMargin = 0,
 			int rightMargin = 0,
 			int bottomMargin = 0,
-			IEnumerable<JsonObject> children = null
-			) : base(name, JsonObjectType.Page) {
+			IEnumerable<object> components = null
+			) : base(name, JsonObjectType.Page, components) {
 
 			this.layout = layout;
 			this.script = script;
@@ -51,7 +51,6 @@ namespace ConsoleDisplayMenu
 			this.BottomMargin = bottomMargin;
 		}
 
-		public Page() : this(null) { }
 
 
 		public override object Evaluate() {
@@ -65,8 +64,6 @@ namespace ConsoleDisplayMenu
 		public override string ToString() {
 			return "Page_" + name;
 		}
-
-		~Page() => instances.Remove(this);
 
 	}
 }

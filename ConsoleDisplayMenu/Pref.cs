@@ -8,17 +8,19 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-	public class Pref : JsonObject, IReferenceValue
-	{
-		public enum PresetReferenceType
-		{
-			Value, Name, Property
-		}
 
-		public static implicit operator Pref(string json) {
+	public enum PresetReferenceType
+	{
+		Value, Name, Property
+	}
+
+	public class Pref : JsonObject
+	{
+
+		public static implicit operator Pref(string meta) {
 			return new Pref() {
 				presetType = PresetReferenceType.Value,
-				target = json.Split('{')[1].Split('}')[0]
+				target = meta
 			};
 		}
 
@@ -33,20 +35,15 @@ namespace ConsoleDisplayMenu
 
 
 		[JsonConstructor]
-		private Pref(
-			string name,
-			string target = "",
+		public Pref(
+			string name = null,
+			string target = null,
 			PresetReferenceType presetType = default(PresetReferenceType)
 			) : base(name, JsonObjectType.Pref) {
 
 			this.presetType = presetType;
 			this.target = target;
-
-			instances.Add(this);
 		}
-
-		public Pref() : this(null) { }
-
 
 
 
@@ -82,8 +79,6 @@ namespace ConsoleDisplayMenu
 		public override string ToString() {
 			return "Pref_" + name;
 		}
-
-		~Pref() => instances.Remove(this);
 
 
 		private class Preset

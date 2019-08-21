@@ -15,23 +15,23 @@ namespace ConsoleDisplayMenu
 			Vertical
 		}
 
-		[JsonProperty]
+		[JsonProperty(Order = 2)]
 		public LayoutType layout;
 		[JsonProperty("components")]
 		public List<JsonObject> components;
 
-		[JsonProperty]
+		[JsonProperty(Order = 3)]
 		public int Width;
-		[JsonProperty]
+		[JsonProperty(Order = 4)]
 		public int Height;
 
-		[JsonProperty]
+		[JsonProperty(Order = 5)]
 		public int LeftMargin;
-		[JsonProperty]
+		[JsonProperty(Order = 6)]
 		public int TopMargin;
-		[JsonProperty]
+		[JsonProperty(Order = 7)]
 		public int RightMargin;
-		[JsonProperty]
+		[JsonProperty(Order = 8)]
 		public int BottomMargin;
 
 
@@ -54,7 +54,9 @@ namespace ConsoleDisplayMenu
 		}
 
 
-		protected Container(string name, JsonObjectType type) : base(name, type) { }
+		protected Container(string name, JsonObjectType type, IEnumerable<object> components) : base(name, type) {
+			DeserializeComponents(components);
+		}
 
 
 
@@ -80,11 +82,11 @@ namespace ConsoleDisplayMenu
 			return sb;
 		}
 
-		internal void DeserializeComponents(IEnumerable<string> inners) {
+		private void DeserializeComponents(IEnumerable<object> inners) {
 			components = new List<JsonObject>();
 
-			foreach(string inner in inners) {
-				var deserialized = IsMeta(inner) ? DeserializeMeta(ReadMeta(inner)) : Deserialize(inner);
+			foreach(string inner in inners.Select(obj => obj.ToString())) {
+				var deserialized = IsMeta(inner) ? DeserializeMeta(inner) : Deserialize(inner);
 
 				components.Add(deserialized);
 			}

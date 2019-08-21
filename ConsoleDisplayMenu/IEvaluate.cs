@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-	internal interface IReferenceValue
+	internal interface IEvaluate
 	{
 
-		object Invoke();
+		object Evaluate();
 
 	}
 }

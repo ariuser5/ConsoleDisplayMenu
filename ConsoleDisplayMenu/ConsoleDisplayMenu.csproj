@@ -44,7 +44,7 @@
   <ItemGroup>
     <Compile Include="Container.cs" />
     <Compile Include="Div.cs" />
-    <Compile Include="IReferenceValue.cs" />
+    <Compile Include="IEvaluate.cs" />
     <Compile Include="JsonObject.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="Pref.cs" />

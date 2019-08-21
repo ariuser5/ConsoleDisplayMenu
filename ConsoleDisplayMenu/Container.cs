@@ -57,6 +57,29 @@ namespace ConsoleDisplayMenu
 		protected Container(string name, JsonObjectType type) : base(name, type) { }
 
 
+
+		public override object Evaluate() {
+			var sb = string.Empty;
+
+			foreach(JsonObject child in components) {
+				sb += child.Evaluate().ToString();
+
+				switch(layout) {
+					case LayoutType.Horizontal:
+						sb += " ";
+						break;
+
+					case LayoutType.Vertical:
+						sb += '\n';
+						break;
+
+					default: throw new NotImplementedException();
+				}
+			}
+
+			return sb;
+		}
+
 		internal void DeserializeComponents(IEnumerable<string> inners) {
 			components = new List<JsonObject>();
 

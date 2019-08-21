@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ConsoleDisplayMenu
 {
 
-	public class Script : JsonObject, IReferenceValue
+	public class Script : JsonObject
 	{
 
 		public static implicit operator Script(string json) {
@@ -138,6 +138,20 @@ namespace ConsoleDisplayMenu
 			foreach(string inner in inners) {
 				//todo
 				args.Add(Deserialize(inner));
+		public override object Evaluate() {
+			if(source == string.Empty) {
+				//Internal source
+				if(@namespace != string.Empty)
+					throw new Exception(string.Format("{0} objects that are calling internal methods must have namespace property as empty string", typeof(Script).ToString()));
+
+				if(className != string.Empty)
+					throw new Exception(string.Format("{0} objects that are calling internal methods must have className property as empty string", typeof(Script).ToString()));
+
+				var method = typeof(JsonObject).GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
+				return method.Invoke(null, CompiledArguments());
+			} else {
+				//External source
+				return RuntimeCompile.Script.Execute(source, @namespace, className, methodName, isStatic, CompiledArguments());
 			}
 		}
 

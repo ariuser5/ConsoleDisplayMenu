@@ -46,71 +46,24 @@ namespace ConsoleDisplayMenu
 		public static string PresetsFile = "Presets.json";
 
 
-		public static void Render(JsonObject jsonObject) {
-			var executionStack = new Stack<Script>();
+		public static void Evaluate(string src) {
+			object recursiveObject = src;
 
-			void recursiveRender(JsonObject jsonObj) {
-				switch(jsonObj.type) {
-					case JsonObjectType.Text:
-						Console.WriteLine(((Text) jsonObj).value);
-						break;
+			do {
+				if(recursiveObject.ToString().EndsWith(".json")) {
+					var json = File.ReadAllText(recursiveObject.ToString());
+					var jObject = Deserialize(json);
 
-					case JsonObjectType.Pref:
-						Console.WriteLine(((Pref) jsonObj).Invoke());
-						break;
+					recursiveObject = jObject.Evaluate();
 
-					case JsonObjectType.Script:
-						Console.WriteLine(((Script) jsonObj).Invoke());
-						break;
+				} else {
+					var script = (Script) recursiveObject.ToString();
 
-					case JsonObjectType.Div:
-
-						var jsonDiv = (Div) jsonObj;
-
-						foreach(JsonObject child in jsonDiv.components)
-							recursiveRender(child);
-
-						switch(jsonDiv.layout) {
-							case Container.LayoutType.Horizontal:
-								Console.Write(" ");
-								break;
-							case Container.LayoutType.Vertical:
-								Console.Write('\n');
-								break;
-							default: throw new NotImplementedException();
-						}
-						break;
-
-					case JsonObjectType.Page:
-						var jsonPage = (Page) jsonObj;
-
-						if(jsonPage.script != null)
-							executionStack.Push(jsonPage.script);
-
-						foreach(JsonObject child in jsonPage.components)
-							recursiveRender(child);
-
-						switch(jsonPage.layout) {
-							case Container.LayoutType.Horizontal:
-								Console.Write(" ");
-								break;
-							case Container.LayoutType.Vertical:
-								Console.Write('\n');
-								break;
-							default: throw new NotImplementedException();
-						}
-						break;
-
-					default: throw new NotImplementedException();
+					recursiveObject = script.Evaluate();
+					Console.WriteLine(recursiveObject);
 				}
-			}
 
-
-			Console.Clear();
-			recursiveRender(jsonObject);
-
-			while(executionStack.Count > 0)
-				executionStack.Pop().Invoke();
+			} while(recursiveObject != null);
 		}
 
 

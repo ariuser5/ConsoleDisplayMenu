@@ -65,7 +65,7 @@ namespace ConsoleDisplayMenu
 		}
 
 
-		public object Invoke() {
+		public override object Evaluate() {
 
 			var jsonString = File.ReadAllText(PresetsFile);
 			var presets = JsonConvert.DeserializeObject<IEnumerable<Preset>>(jsonString);

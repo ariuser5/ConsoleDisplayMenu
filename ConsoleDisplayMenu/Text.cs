@@ -37,6 +37,9 @@ namespace ConsoleDisplayMenu
 		}
 
 
+		public override object Evaluate() {
+			return value;
+		}
 
 		public override string ToString() {
 			return "Text_" + name;

@@ -15,9 +15,8 @@ namespace CDM_run
 
 		private static void Main(string[] args) {
 
-			var currPage = Page.Import(pagePath);
 
-			JsonObject.Render(currPage);
+			JsonObject.Evaluate(pagePath);
 			Console.ReadKey();
 
 		}

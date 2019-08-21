@@ -54,6 +54,13 @@ namespace ConsoleDisplayMenu
 		public Page() : this(null) { }
 
 
+		public override object Evaluate() {
+			Console.Clear();
+			Console.Write(base.Evaluate());
+
+			return script?.Evaluate();
+		}
+
 
 		public override string ToString() {
 			return "Page_" + name;

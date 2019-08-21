@@ -54,6 +54,12 @@
     <None Include="Presets.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Sample\BlankPage.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Sample\GreetPage.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Sample\MainMenuPage.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

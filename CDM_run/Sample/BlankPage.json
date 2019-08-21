@@ -1,0 +1,8 @@
+{
+  "name": "BlankPage",
+  "type": "Page",
+  "script": "",
+  "components": [
+    "This is a blank page!"
+  ]
+}

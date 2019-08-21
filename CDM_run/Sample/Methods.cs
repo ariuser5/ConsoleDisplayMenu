@@ -1,15 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 public class Methods
 {
-	public static void MainMenu() {
-		Console.WriteLine("executing MainMenu from Methods class");
+	public static object MainMenuScript() {
+		Console.WriteLine("From Methods.MainMenuScript");
+
+		ConsoleKeyInfo inKey;
+
+		while(true) {
+			inKey = Console.ReadKey();
+
+			switch(inKey.KeyChar) {
+				case '1': return "Sample\\GreetPage.json";
+				case '2': return "Sample\\BlankPage.json";
+				case '3': goto Exiting;
+			}
+		}
+
+	Exiting:
+		return null;
 	}
 
-	public static int GetThree() => 3;
+	public static int GetThree() { return 3; }
+
+	public static object ReturnArg(object arg) { return arg; }
 
 }

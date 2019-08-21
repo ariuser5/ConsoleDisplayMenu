@@ -1,0 +1,8 @@
+{
+  "name": "GreetPage",
+  "type": "Page",
+  "script": "",
+  "components": [
+    "Greetings from GreetPage!"
+  ]
+}

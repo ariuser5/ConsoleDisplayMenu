@@ -42,15 +42,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConsoleEvent.cs" />
     <Compile Include="Container.cs" />
     <Compile Include="Div.cs" />
-    <Compile Include="IEvaluate.cs" />
+    <Compile Include="IRenderable.cs" />
     <Compile Include="JsonObject.cs" />
     <Compile Include="Page.cs" />
     <Compile Include="Pref.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Script.cs" />
-    <Compile Include="Text.cs" />
+    <Compile Include="MethodCall.cs" />
+    <Compile Include="RenderContainer.cs" />
+    <Compile Include="Unit.cs" />
     <Compile Include="Tools.cs" />
   </ItemGroup>
   <ItemGroup>

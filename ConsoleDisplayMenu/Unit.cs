@@ -7,25 +7,25 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-	public class Text : JsonObject
+	public class Unit : JsonObject
 	{
 
-		public static implicit operator Text(string meta) {
-			return new Text() { value = meta };
+		public static implicit operator Unit(string meta) {
+			return new Unit() { value = meta };
 		}
 
 
 
 
 		[JsonProperty(Order = 2)]
-		public string value;
+		public object value;
 
 
 
 		[JsonConstructor]
-		public Text(
+		public Unit(
 			string name = null,
-			string value = null
+			object value = null
 			) : base(name, JsonObjectType.Text) {
 
 			this.value = value;

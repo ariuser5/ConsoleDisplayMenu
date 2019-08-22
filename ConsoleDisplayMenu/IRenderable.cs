@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-	internal interface IEvaluate
+	internal interface IRenderable
 	{
 
 		object Evaluate();

@@ -1,10 +1,21 @@
 {
   "name": "MainMenuPage",
   "type": "Page",
-  "script": "Sample\\Methods.cs>Methods.MainMenuScript()",
+  "script": "Sample\\Methods.cs>Methods",
   "layout": "Vertical",
+  "events": [
+    "1:Load_Greet():Immediately",
+    "2:Load_Blank():Immediately",
+    "3:App_Stop():Immediately",
+    {
+      "name": "MyEvent",
+      "trigger": "\r",
+      "raiseType": "Immediately",
+      "methodCall": "$ReturnArg(asd)"
+    }
+  ],
   "components": [
-    "HAHA: ${Sample\\Methods.cs>Methods.ReturnArg(#{Preset0})}",
+    "HAHA: ${ReturnArg(#{Preset0})}",
     {
       "name": "HeaderInfo",
       "type": "Div",
@@ -19,7 +30,7 @@
             },
             {
               "type": "Pref",
-              "target": "preset0"
+              "target": "Preset0"
             }
           ]
         },
@@ -32,7 +43,7 @@
             },
             {
               "type": "Pref",
-              "target": "preset1",
+              "target": "Preset1",
               "presetType": "Property"
             }
           ]

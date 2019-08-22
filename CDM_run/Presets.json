@@ -1,11 +1,11 @@
 [
   {
-    "name": "preset0",
+    "name": "Preset0",
     "value": "preset1_value",
     "defaultValue": "preset1_value"
   },
   {
-    "name": "preset1",
+    "name": "Preset1",
     "value": 100,
     "defaultValue": null
   }

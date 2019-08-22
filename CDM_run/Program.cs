@@ -16,7 +16,9 @@ namespace CDM_run
 		private static void Main(string[] args) {
 
 
-			JsonObject.Evaluate(pagePath);
+			Page.Evaluate(pagePath);
+			Console.WriteLine("End of program");
+			Console.WriteLine("Press any key to continue...");
 			Console.ReadKey();
 
 		}

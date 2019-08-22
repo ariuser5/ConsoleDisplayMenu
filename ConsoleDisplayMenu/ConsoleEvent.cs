@@ -26,14 +26,14 @@ namespace ConsoleDisplayMenu
 			} else if(properties.Count() == 3) {
 				trigger = properties[0];
 				methodCall = properties[1];
-				raiseType = (ConsoleEventRaiseType) Enum.Parse(typeof(ConsoleEventRaiseType), properties[3]);
+				raiseType = (ConsoleEventRaiseType) Enum.Parse(typeof(ConsoleEventRaiseType), properties[2]);
 
 			} else throw new ArgumentException("Meta string could not be parsed");
 
 			return new ConsoleEvent(null, trigger, raiseType, methodCall);
 		}
 
-		internal static List<ConsoleEvent> instances = new List<ConsoleEvent>();
+		private static List<ConsoleEvent> instances = new List<ConsoleEvent>();
 
 
 
@@ -64,7 +64,7 @@ namespace ConsoleDisplayMenu
 			this.methodCall = methodCall.ToString();
 		}
 
-		~ConsoleEvent() => instances.Remove(this);
+		internal virtual void Dump() => instances.Remove(this);
 
 
 		public override string ToString() {

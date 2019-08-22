@@ -10,53 +10,18 @@ using System.Threading.Tasks;
 namespace ConsoleDisplayMenu
 {
 
-	public class Script : JsonObject
+	public class MethodCall : Container
 	{
 
-		public static implicit operator Script(string meta) {
-			var address = new string(meta.TakeWhile(ch => ch != '(').ToArray());
-			var source = string.Empty;
-			var @namespace = string.Empty;
-			var className = string.Empty;
-			var methodName = string.Empty;
-			IEnumerable<string> scope = null;
-			IEnumerable<object> args = null;
+		public static implicit operator MethodCall(string meta) {
+			var addr = MethodAddress.Parse(meta);
+			var argsMeta = Tools.ReadBetween(meta, '(', ')');
+			var args = argsMeta.
+				Split(".".ToCharArray(), StringSplitOptions.RemoveEmptyEntries).
+				Select(str => str.Trim()).
+				AsEnumerable<object>();
 
-			if(address.Contains('>')) {
-				var delimiterIndex = address.IndexOf('>');
-
-				source = address.Substring(0, delimiterIndex);
-				scope = address.Substring(delimiterIndex + 1).Split('.');
-			} else {
-				scope = address.Split('.');
-			}
-
-			if(scope.Count() == 1) {
-				methodName = scope.ElementAt(0);
-
-			} else if(scope.Count() == 2) {
-				className = scope.ElementAt(0);
-				methodName = scope.ElementAt(1);
-
-			} else if(scope.Count() == 3) {
-				@namespace = scope.ElementAt(0);
-				className = scope.ElementAt(1);
-				methodName = scope.ElementAt(2);
-
-			} else throw new Exception(
-				string.Format(
-					"{0} object scope could not be determined from: {1}",
-					typeof(Script).ToString(),
-					meta
-				)
-			);
-
-			var temp = Tools.ReadBetween(meta, '(', ')');
-			args = temp.
-				Split(",".ToArray(), options: StringSplitOptions.RemoveEmptyEntries).
-				Select(arg => arg.Trim());
-
-			return new Script(null, source, @namespace, className, methodName, true, args);
+			return new MethodCall(addr.source, addr.namespaces, addr.className, addr.methodName, true, args);
 		}
 
 
@@ -68,7 +33,7 @@ namespace ConsoleDisplayMenu
 
 		[DefaultValue("")]
 		[JsonProperty(Order = 3)]
-		public string @namespace;
+		public List<string> namespaces;
 
 		[DefaultValue("")]
 		[JsonProperty(Order = 4)]
@@ -82,81 +47,188 @@ namespace ConsoleDisplayMenu
 		[JsonProperty(Order = 6, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
 		public bool isStatic;
 
-		[JsonProperty("args", Order = 7)]
-		public List<JsonObject> args;
+
+
 
 		[JsonIgnore]
-		public string TypeAddress {
-			get => @namespace != string.Empty ? @namespace + '.' + className : className;
+		public string TypeName {
+			get => namespaces.Aggregate(string.Empty, (seed, w) => seed + w + '.') + className;
+		}
+
+		[JsonIgnore]
+		public IEnumerable<JsonObject> Args {
+			get => children;
+			set => BaseChildren = value;
+		}
+
+		[JsonIgnore]
+		public object[] CompiledArgs {
+			get {
+				return (from arg in Args select arg.Evaluate()).ToArray();
+			}
+		}
+
+		[JsonIgnore]
+		public Page BasePage {
+			get {
+				Container current = _parent;
+
+				while(current?._parent != null && current?.type != JsonObjectType.Page)
+					current = current._parent;
+
+				return current as Page;
+			}
 		}
 
 
 
 		[JsonConstructor]
-		private Script(
+		private MethodCall(
 			string name = null,
 			string source = null,
-			string @namespace = null,
+			IEnumerable<string> namespaces = null,
 			string className = null,
 			string methodName = null,
 			bool isStatic = false,
-			IEnumerable<object> args = null
-			) : base(name, JsonObjectType.Script) {
+			[JsonProperty("args")]IEnumerable<object> args = null
+			) : base(name, JsonObjectType.Script, args) {
 
 			this.source = source;
-			this.@namespace = @namespace;
+			this.namespaces = namespaces.ToList();
 			this.className = className;
 			this.methodName = methodName;
 			this.isStatic = isStatic;
-
-			DeserializeArgs(args);
 		}
 
-		public Script(
+		public MethodCall(
 			string source = "",
-			string @namespace = "",
+			IEnumerable<string> namespaces = null,
 			string className = "",
 			string methodName = "",
 			bool isStatic = true,
 			IEnumerable<object> args = null
-		) : this(null, source, @namespace, className, methodName, isStatic, args) { }
+		) : this(null, source, namespaces, className, methodName, isStatic, args) { }
 
+
+		private MethodAddress GetAddress() {
+			return new MethodAddress() {
+				source = source,
+				namespaces = namespaces,
+				className = className,
+				methodName = methodName
+			};
+		}
 
 
 
 		public override object Evaluate() {
 			if(source == string.Empty) {
-				//Internal source
-				if(@namespace != string.Empty)
-					throw new Exception(string.Format("{0} objects that are calling internal methods must have namespace property as empty string", typeof(Script).ToString()));
 
-				if(className != string.Empty)
-					throw new Exception(string.Format("{0} objects that are calling internal methods must have className property as empty string", typeof(Script).ToString()));
+				object retVal = null;
+				Type type = null;
+				object instance = null;
+				Assembly assem = Assembly.GetExecutingAssembly();
+				MethodInfo method = null;
 
-				var method = typeof(JsonObject).GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
-				return method.Invoke(null, CompiledArguments());
+				if(isStatic) {
+					type = assem.GetType(TypeName);
+				} else {
+					instance = assem.CreateInstance(TypeName);
+					type = instance.GetType();
+				}
+
+				method = type.GetMethod(methodName);
+				retVal = method.Invoke(instance, CompiledArgs);
+				return retVal;
+
 			} else {
-				//External source
-				return RuntimeCompile.Script.Execute(source, @namespace, className, methodName, isStatic, CompiledArguments());
+				return RuntimeCompile.Script.Execute(source, TypeName, methodName, isStatic, CompiledArgs);
 			}
-		}
 
-		private void DeserializeArgs(IEnumerable<object> inners) {
-			args = new List<JsonObject>();
+			//var temp = GetAddress();
 
-			foreach(string inner in inners.Select(obj => obj.ToString())) {
-				var deserialized = IsMeta(inner) ? DeserializeMeta(inner) : Deserialize(inner);
+			//if(temp.source == string.Empty) {
+			//	var envAddress = !string.IsNullOrEmpty(BasePage?.script) ? MethodAddress.Parse(BasePage.script) : null;
 
-				args.Add(deserialized);
-			}
-		}
+			//	if(envAddress == null) throw new Exception("Missing address. Method cannot be evaluated");
 
-		private object[] CompiledArguments() {
-			return (from arg in args select arg.Evaluate()).ToArray();
+			//	temp.source = temp.source != string.Empty ? temp.source : envAddress.source;
+
+			//	if(temp.className == string.Empty) {
+			//		temp.className = envAddress.className;
+			//		temp.namespaces = envAddress.namespaces;
+			//	}
+			//}
+
+			//return RuntimeCompile.Script.Execute(temp.source, temp.TypeName, temp.methodName, isStatic, CompiledArgs);
 		}
 
 		public override string ToString() {
 			return "Script_" + name;
+		}
+
+
+
+
+
+		private class MethodAddress
+		{
+
+			public static MethodAddress Parse(string text) {
+				var address = new string(text.TakeWhile(ch => ch != '(').ToArray());
+				var source = string.Empty;
+				var className = string.Empty;
+				var methodName = string.Empty;
+				var scope = string.Empty;
+				List<string> namespaces = new List<string>();
+
+				Stack<string> addrSlots;
+
+				if(address.Contains('>')) {
+					source = new string(text.TakeWhile(ch => ch != '>').ToArray());
+					scope = address.Substring(source.Length + 1);
+				} else {
+					scope = address.Substring(source.Length);
+				}
+
+				addrSlots = new Stack<string>(scope.Split(".".ToCharArray(), StringSplitOptions.RemoveEmptyEntries));
+
+				if(text.Contains('(')) {
+					methodName = addrSlots.Pop();
+					className = addrSlots.Count > 1 ? addrSlots.Pop() : className;
+				} else {
+					className = addrSlots.Pop();
+				}
+
+				while(addrSlots.Count > 0)
+					namespaces.Add(addrSlots.Pop());
+
+				namespaces.Reverse();
+
+				return new MethodAddress() {
+					source = source,
+					namespaces = namespaces,
+					className = className,
+					methodName = methodName
+				};
+			}
+
+
+			public string source;
+			public string className;
+			public string methodName;
+			public List<string> namespaces;
+
+
+
+			public string TypeName {
+				get => namespaces.Aggregate(string.Empty, (seed, w) => seed + w + '.') + className;
+			}
+
+			public override string ToString() {
+				return TypeName + '.' + methodName;
+			}
+
 		}
 
 	}

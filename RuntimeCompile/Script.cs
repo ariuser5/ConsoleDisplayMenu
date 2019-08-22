@@ -20,6 +20,7 @@ namespace RuntimeCompile
 				GenerateExecutable = false,
 				GenerateInMemory = true
 			};
+
 			CompilerResults results =
 			   provider.CompileAssemblyFromSource(compilerparams, code);
 
@@ -37,8 +38,7 @@ namespace RuntimeCompile
 
 		public static object Execute(
 			string source,
-			string @namespace = "",
-			string className = "MyClass",
+			string typeName = "",
 			string methodName = "Main",
 			bool isStatic = true,
 			params object[] args) {
@@ -47,7 +47,6 @@ namespace RuntimeCompile
 			string code = File.ReadAllText(source);
 			object instance = null;
 			Type type = null;
-			string typeName = @namespace != string.Empty ? @namespace + className : className;
 			Assembly asm = BuildAssembly(code);
 
 			if(isStatic) {

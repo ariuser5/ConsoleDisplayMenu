@@ -7,23 +7,25 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-	public class Page : Container
+	public class Page : RenderContainer
 	{
 
 
-		public static Page Import(string source) {
+		public static object Evaluate(string source) {
+			instances.Clear();
+
 			var json = System.IO.File.ReadAllText(source);
 			var page = Deserialize(json);
 
-			if(page.type == JsonObjectType.Page) return (Page) page;
-			else throw new Exception(
-				string.Format("Json in source file cannot be deserialized as {0} object", typeof(Page).ToString())
-			);
+			return page.Evaluate();
 		}
 
 
 		[JsonProperty(Order = 4)]
-		public Script script;
+		public string script;
+
+		[JsonProperty(Order = 5)]
+		public readonly List<ConsoleEvent> events;
 
 
 
@@ -31,18 +33,20 @@ namespace ConsoleDisplayMenu
 		public Page(
 			string name = null,
 			LayoutType layout = default(LayoutType),
-			Script script = null,
+			string script = null,
 			int width = 0,
 			int height = 0,
 			int leftMargin = 0,
 			int topMargin = 0,
 			int rightMargin = 0,
 			int bottomMargin = 0,
-			IEnumerable<object> components = null
-			) : base(name, JsonObjectType.Page, components) {
+			[JsonProperty("components")]IEnumerable<object> children = null,
+			[JsonProperty("events")]List<ConsoleEvent> events = null
+			) : base(name, JsonObjectType.Page, children) {
 
 			this.layout = layout;
 			this.script = script;
+			this.events = events;
 			this.Width = width;
 			this.Height = height;
 			this.LeftMargin = leftMargin;
@@ -53,11 +57,42 @@ namespace ConsoleDisplayMenu
 
 
 
-		public override object Evaluate() {
+		public void Render() {
 			Console.Clear();
 			Console.Write(base.Evaluate());
+		}
 
-			return script?.Evaluate();
+		public override object Evaluate() {
+			ConsoleEvent catchEvent;
+			ConsoleKeyInfo inKey;
+			var command = string.Empty;
+
+			Render();
+
+			while(true) {
+				inKey = Console.ReadKey();
+				command += inKey.KeyChar;
+
+				catchEvent = MonitorInput(command);
+
+				if(catchEvent != null) break;
+
+				if(inKey.KeyChar == '\r') {
+					command = string.Empty;
+					Render();
+				}
+			}
+
+			return catchEvent;
+		}
+
+		public ConsoleEvent MonitorInput(string command) {
+			IEnumerable<ConsoleEvent> listeningEvents = events; ;
+
+			if(command.Last() != '\r')
+				listeningEvents = events.Where(e => e.raiseType == ConsoleEventRaiseType.Immediately);
+
+			return listeningEvents.FirstOrDefault(e => e.trigger == command);
 		}
 
 

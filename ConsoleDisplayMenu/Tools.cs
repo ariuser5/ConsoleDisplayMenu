@@ -84,8 +84,7 @@ namespace ConsoleDisplayMenu
 
 			if(string.IsNullOrEmpty(preferedName)) preferedName = defaultName;
 
-			preferedName = defaultName;
-			current = defaultName;
+			current = preferedName;
 
 			while(true) {
 				if(!refList.Contains(current)) return current;

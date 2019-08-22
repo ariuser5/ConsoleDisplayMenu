@@ -10,29 +10,12 @@ namespace ConsoleDisplayMenu
 {
 	public enum JsonObjectType
 	{
-		JsonObject, Text, Pref, Script, Div, Page
+		Proto, Text, Pref, Script, Div, Page
 	}
 
 
-	public abstract class JsonObject : IEvaluate
+	public abstract class JsonObject : IRenderable
 	{
-
-		//public static implicit operator JsonObject(string json) {
-		//	var metas = ReadMetaComponents(json);
-
-		//	if(metas.Count() == 0) {
-		//		throw new Exception("Unexpected behaviour");
-
-		//	} else if(metas.Count() == 1) {
-		//		switch(metas.Single().First()) {
-		//			case '#': return new JsonObject(JsonObjectType.Pref);
-		//			case '$': return new JsonObject(JsonObjectType.Script);
-		//			default: return new JsonObject(JsonObjectType.Text);
-		//		}
-
-		//	} else
-		//		return new JsonObject(JsonObjectType.Div);
-		//}
 
 		public static implicit operator JsonObject(string json) {
 			return new Proto();
@@ -43,31 +26,6 @@ namespace ConsoleDisplayMenu
 
 
 
-
-		public static string PresetsFile = "Presets.json";
-
-
-		public static void Evaluate(string src) {
-			object recursiveObject = src;
-
-			do {
-				if(recursiveObject.ToString().EndsWith(".json")) {
-					var json = File.ReadAllText(recursiveObject.ToString());
-					var jObject = Deserialize(json);
-
-					recursiveObject = jObject.Evaluate();
-
-				} else {
-					var script = (Script) recursiveObject.ToString();
-
-					recursiveObject = script.Evaluate();
-					Console.WriteLine(recursiveObject);
-				}
-
-			} while(recursiveObject != null);
-		}
-
-
 		internal static JsonObject Deserialize(string json) {
 			JsonSerializerSettings settings = new JsonSerializerSettings() {
 				DefaultValueHandling = DefaultValueHandling.Ignore,
@@ -75,19 +33,20 @@ namespace ConsoleDisplayMenu
 
 			};
 			Proto protoObject = JsonConvert.DeserializeObject<Proto>(json, settings);
+			var protoType = protoObject.type;
 
-			switch(protoObject.type) {
-				case JsonObjectType.JsonObject:
+			switch(protoType) {
+				case JsonObjectType.Proto:
 					throw new Exception("Unexpected Behaviour");
 
 				case JsonObjectType.Text:
-					return JsonConvert.DeserializeObject<Text>(json, settings);
+					return JsonConvert.DeserializeObject<Unit>(json, settings);
 
 				case JsonObjectType.Pref:
 					return JsonConvert.DeserializeObject<Pref>(json, settings);
 
 				case JsonObjectType.Script:
-					return JsonConvert.DeserializeObject<Script>(json, settings);
+					return JsonConvert.DeserializeObject<MethodCall>(json, settings);
 
 				case JsonObjectType.Div:
 					return JsonConvert.DeserializeObject<Div>(json, settings);
@@ -110,23 +69,12 @@ namespace ConsoleDisplayMenu
 
 				switch(meta.First()) {
 					case '#': return (Pref) Tools.ReadBetween(meta, '{', '}');
-					case '$': return (Script) Tools.ReadBetween(meta, '{', '}');
-					default: return (Text) meta;
+					case '$': return (MethodCall) Tools.ReadBetween(meta, '{', '}');
+					default: return (Unit) meta;
 				}
 
 			} else {
-
-				var newDiv = new Div() {
-					layout = Container.LayoutType.Horizontal
-				};
-
-				foreach(string meta in metas) {
-					var deserialized = DeserializeMeta(meta);
-
-					newDiv.components.Add(deserialized);
-				}
-
-				return new Div();
+				return new Div(null, children: new List<object>(metas));
 			}
 		}
 
@@ -269,7 +217,7 @@ namespace ConsoleDisplayMenu
 
 		internal static string GetDefaultName(JsonObjectType requestType) {
 			switch(requestType) {
-				case JsonObjectType.JsonObject: throw new Exception("Unexpected exception");
+				case JsonObjectType.Proto: return "Proto";
 				case JsonObjectType.Text: return "Text";
 				case JsonObjectType.Pref: return "Pref";
 				case JsonObjectType.Script: return "Script";
@@ -279,37 +227,10 @@ namespace ConsoleDisplayMenu
 			}
 		}
 
-		internal static string AssignName(JsonObjectType type) {
-			var prefix = GetDefaultName(type);
-			int count = 0;
-
-			while(true) {
-				if(!instances.Any(item => item.name == prefix + count))
-					return prefix + count;
-
-				count++;
-			}
-		}
-
-		internal static string AssignName(string name, JsonObjectType type) {
-			if(name == null) return AssignName(type);
-
-			var current = name;
-			var suffix = string.Empty;
-			int count = 1;
-
-			while(true) {
-				if(!instances.Any(item => item.name == current + suffix))
-					return current + suffix;
-
-				suffix = string.Format("({0})", count);
-				count++;
-			}
-		}
 
 
-
-
+		[JsonIgnore]
+		protected internal Container _parent;
 
 
 		[JsonProperty(Order = 0)]
@@ -319,21 +240,44 @@ namespace ConsoleDisplayMenu
 		public JsonObjectType type;
 
 
-		[JsonConstructor]
-		private JsonObject() {
-			type = JsonObjectType.JsonObject;
+		[JsonIgnore]
+		public Container Parent {
+			get => _parent;
+			set {
+				if(value == _parent) return;
+				if(_parent != null) _parent.children.Remove(this);
+
+				_parent = value;
+				value?.children.Add(this);
+			}
 		}
+
+		[JsonIgnore]
+		public Container Root {
+			get {
+				Container current = _parent;
+
+				while(current?._parent != null) current = current._parent;
+
+				return current;
+			}
+		}
+
 
 		protected JsonObject(string name, JsonObjectType type) : base() {
 			this.type = type;
-			this.name = AssignName(name, type);
+			this.name = Tools.GetUniqueName(instances.Select(i => i.name), name, GetDefaultName(type));
 
-			instances.Add(this);
+			if(type != JsonObjectType.Proto)
+				instances.Add(this);
 		}
 
-		~JsonObject() => instances.Remove(this);
+		internal virtual void Dump() {
+			instances.Remove(this);
 
-
+			_parent?.children.Remove(this);
+			_parent = null;
+		}
 
 		public abstract object Evaluate();
 
@@ -342,6 +286,8 @@ namespace ConsoleDisplayMenu
 
 		internal class Proto : JsonObject
 		{
+			public Proto() : base("proto", JsonObjectType.Proto) { }
+
 			public override object Evaluate() {
 				throw new Exception(string.Format("{0} as JsonObject derived type cannot be evaulate", typeof(Proto).ToString()));
 			}

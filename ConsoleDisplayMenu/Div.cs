@@ -7,22 +7,8 @@ using System.Threading.Tasks;
 
 namespace ConsoleDisplayMenu
 {
-	public class Div : Container
+	public class Div : RenderContainer
 	{
-
-		//public static implicit operator Div(string json) {
-		//	Div newDiv = new Div() {
-		//		inner = JsonToMeta(json),
-		//		metaDefined = true,
-		//		name = GetAvailableId(JsonObjectType.Pref),
-		//		layout = LayoutType.Horizontal
-		//	};
-		//	newDiv.DeserializeComponents();
-
-		//	return newDiv;
-		//}
-
-
 
 
 		[JsonConstructor]
@@ -35,8 +21,8 @@ namespace ConsoleDisplayMenu
 			int topMargin = 0,
 			int rightMargin = 0,
 			int bottomMargin = 0,
-			IEnumerable<object> components = null
-			) : base(name, JsonObjectType.Div, components) {
+			[JsonProperty("components")]IEnumerable<object> children = null
+			) : base(name, JsonObjectType.Div, children) {
 
 			this.layout = layout;
 			this.Width = width;
